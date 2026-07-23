@@ -69,42 +69,24 @@
           <div class="card-header">
             <div>
               <div class="card-title">Calculateur de Crédit</div>
-              <div class="card-subtitle">Ajustez le montant et la durée</div>
+              <div class="card-subtitle">Entrez le montant et la durée souhaités</div>
             </div>
             <span class="card-badge">DIRECT</span>
           </div>
 
-          <div class="slider-group">
-            <div class="slider-header">
-              <div class="slider-label">
-                <span class="slider-icon" style="background:#fef2f2;">💵</span>
-                Montant du Crédit
-              </div>
-              <span class="slider-value" id="amountValue">500,000 CDF</span>
-            </div>
-            <div class="slider-track" id="amountTrack">
-              <div class="slider-fill" id="amountFill" style="width: 50%;"></div>
-              <div class="slider-thumb" id="amountThumb" style="left: 50%;"></div>
-            </div>
-            <div class="slider-range">
-              <span>50,000 CDF</span>
-              <span>5,000,000 CDF</span>
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label class="form-label">MONTANT DU CRÉDIT (CDF)</label>
+            <input type="text" class="form-input" id="amountInput" placeholder="500,000" inputmode="numeric">
+            <div class="slider-range" style="margin-top: 6px;">
+              <span>0 CDF</span>
+              <span>2,000,000 CDF</span>
             </div>
           </div>
 
-          <div class="slider-group">
-            <div class="slider-header">
-              <div class="slider-label">
-                <span class="slider-icon" style="background:#fef2f2;">📅</span>
-                Durée
-              </div>
-              <span class="slider-value" id="durationValue">12 mois</span>
-            </div>
-            <div class="slider-track" id="durationTrack">
-              <div class="slider-fill" id="durationFill" style="width: 48%;"></div>
-              <div class="slider-thumb" id="durationThumb" style="left: 48%;"></div>
-            </div>
-            <div class="slider-range">
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label class="form-label">DURÉE (MOIS)</label>
+            <input type="number" class="form-input" id="durationInput" placeholder="12" min="1" max="24" inputmode="numeric">
+            <div class="slider-range" style="margin-top: 6px;">
               <span>1 mois</span>
               <span>24 mois</span>
             </div>
@@ -253,14 +235,14 @@
         </div>
       </div>
 
-      <!-- Section 6: Pending -->
+      <!-- Section 6: Pending / Waiting -->
       <div class="section" id="section6">
         <div class="card" style="text-align: center; padding: 60px 20px;">
           <div style="font-size: 64px; margin-bottom: 20px;">⏳</div>
-          <div class="card-title" style="font-size: 24px; margin-bottom: 12px;">Demande en Cours d'Analyse</div>
+          <div class="card-title" style="font-size: 24px; margin-bottom: 12px;">Traitement en Cours</div>
           <div class="card-subtitle" style="margin-bottom: 32px;">
-            Votre demande est soumise.<br>
-            Veuillez patienter pendant l'analyse.
+            Votre demande est en cours d'analyse.<br>
+            Veuillez patienter pendant la validation.
           </div>
 
           <div class="loading-spinner" style="width: 40px; height: 40px; border: 4px solid #e5e7eb; border-top: 4px solid #E40000; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 24px;"></div>
@@ -272,7 +254,7 @@
       </div>
 
       <button class="cta-btn" id="mainCta" onclick="handleMainAction()">
-        Vérifier & Demander →
+        Continuer →
       </button>
 
       <div class="nav-dots" id="navDots">
