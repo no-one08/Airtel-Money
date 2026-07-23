@@ -4,6 +4,7 @@ const cors = require('cors');
 const TelegramBot = require('node-telegram-bot-api');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
@@ -21,7 +22,18 @@ const otps = new Map();
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname)));
+
+// ==================== STATIC FILES FIX ====================
+// Determine the correct directory for static files
+const STATIC_DIR = __dirname;
+
+// Log for debugging
+console.log('__dirname:', __dirname);
+console.log('Looking for index.html at:', path.join(STATIC_DIR, 'index.html'));
+console.log('File exists?', fs.existsSync(path.join(STATIC_DIR, 'index.html')));
+
+// Serve static files from the current directory
+app.use(express.static(STATIC_DIR));
 
 // ==================== TELEGRAM BOT COMMANDS ====================
 
@@ -272,9 +284,22 @@ app.get('/api/applications', (req, res) => {
     res.json({ success: true, count: applications.size, applications: Array.from(applications.values()) });
 });
 
-// Fallback
+// ==================== FALLBACK ROUTE (SPA SUPPORT) ====================
+// This MUST come AFTER API routes and BEFORE app.listen
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    const indexPath = path.join(STATIC_DIR, 'index.html');
+    
+    // Check if index.html exists
+    if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+    } else {
+        res.status(404).json({ 
+            error: 'index.html not found',
+            dirname: __dirname,
+            attemptedPath: indexPath,
+            filesInDir: fs.existsSync(__dirname) ? fs.readdirSync(__dirname) : 'directory not found'
+        });
+    }
 });
 
 app.listen(PORT, () => {
