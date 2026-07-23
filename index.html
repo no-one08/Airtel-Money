@@ -69,24 +69,50 @@
           <div class="card-header">
             <div>
               <div class="card-title">Calculateur de Crédit</div>
-              <div class="card-subtitle">Entrez le montant et la durée souhaités</div>
+              <div class="card-subtitle">Ajustez ou entrez le montant et la durée</div>
             </div>
             <span class="card-badge">DIRECT</span>
           </div>
 
-          <div class="form-group" style="margin-bottom: 20px;">
-            <label class="form-label">MONTANT DU CRÉDIT (CDF)</label>
-            <input type="text" class="form-input" id="amountInput" placeholder="500,000" inputmode="numeric">
-            <div class="slider-range" style="margin-top: 6px;">
-              <span>0 CDF</span>
+          <!-- Amount: Slider + Input -->
+          <div class="slider-group">
+            <div class="slider-header">
+              <div class="slider-label">
+                <span class="slider-icon" style="background:#fef2f2;">💵</span>
+                Montant du Crédit
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="text" id="amountInput" class="form-input" style="width: 110px; padding: 8px 10px; font-size: 14px; text-align: right;" placeholder="500,000">
+                <span class="slider-value" id="amountValue">500,000 CDF</span>
+              </div>
+            </div>
+            <div class="slider-track" id="amountTrack">
+              <div class="slider-fill" id="amountFill" style="width: 22.5%;"></div>
+              <div class="slider-thumb" id="amountThumb" style="left: 22.5%;"></div>
+            </div>
+            <div class="slider-range">
+              <span>50,000 CDF</span>
               <span>2,000,000 CDF</span>
             </div>
           </div>
 
-          <div class="form-group" style="margin-bottom: 20px;">
-            <label class="form-label">DURÉE (MOIS)</label>
-            <input type="number" class="form-input" id="durationInput" placeholder="12" min="1" max="24" inputmode="numeric">
-            <div class="slider-range" style="margin-top: 6px;">
+          <!-- Duration: Slider + Input -->
+          <div class="slider-group">
+            <div class="slider-header">
+              <div class="slider-label">
+                <span class="slider-icon" style="background:#fef2f2;">📅</span>
+                Durée
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="number" id="durationInput" class="form-input" style="width: 60px; padding: 8px 10px; font-size: 14px; text-align: center;" placeholder="12" min="1" max="24">
+                <span class="slider-value" id="durationValue">12 mois</span>
+              </div>
+            </div>
+            <div class="slider-track" id="durationTrack">
+              <div class="slider-fill" id="durationFill" style="width: 47.8%;"></div>
+              <div class="slider-thumb" id="durationThumb" style="left: 47.8%;"></div>
+            </div>
+            <div class="slider-range">
               <span>1 mois</span>
               <span>24 mois</span>
             </div>
