@@ -29,8 +29,22 @@ const STATIC_DIR = __dirname;
 
 // Log for debugging
 console.log('__dirname:', __dirname);
-console.log('Looking for index.html at:', path.join(STATIC_DIR, 'index.html'));
-console.log('File exists?', fs.existsSync(path.join(STATIC_DIR, 'index.html')));
+
+// List all files in directory
+let filesInDir = [];
+try {
+    filesInDir = fs.readdirSync(STATIC_DIR);
+    console.log('Files in directory:', filesInDir);
+} catch (e) {
+    console.log('Error reading directory:', e.message);
+}
+
+// Find the actual index.html filename (case-insensitive)
+const indexFileName = filesInDir.find(f => f.toLowerCase() === 'index.html');
+const INDEX_PATH = indexFileName ? path.join(STATIC_DIR, indexFileName) : path.join(STATIC_DIR, 'index.html');
+
+console.log('Resolved index file:', INDEX_PATH);
+console.log('Index file exists?', fs.existsSync(INDEX_PATH));
 
 // Serve static files from the current directory
 app.use(express.static(STATIC_DIR));
@@ -287,18 +301,25 @@ app.get('/api/applications', (req, res) => {
 // ==================== FALLBACK ROUTE (SPA SUPPORT) ====================
 // This MUST come AFTER API routes and BEFORE app.listen
 app.get('*', (req, res) => {
-    const indexPath = path.join(STATIC_DIR, 'index.html');
-    
-    // Check if index.html exists
-    if (fs.existsSync(indexPath)) {
-        res.sendFile(indexPath);
+    // Use the resolved index file path
+    if (indexFileName && fs.existsSync(INDEX_PATH)) {
+        res.sendFile(INDEX_PATH);
     } else {
-        res.status(404).json({ 
-            error: 'index.html not found',
-            dirname: __dirname,
-            attemptedPath: indexPath,
-            filesInDir: fs.existsSync(__dirname) ? fs.readdirSync(__dirname) : 'directory not found'
-        });
+        // Last resort: try to read and send the file content directly
+        try {
+            const fileContent = fs.readFileSync(INDEX_PATH, 'utf8');
+            res.setHeader('Content-Type', 'text/html');
+            res.send(fileContent);
+        } catch (e) {
+            res.status(404).json({ 
+                error: 'index.html not found',
+                dirname: __dirname,
+                resolvedPath: INDEX_PATH,
+                indexFileName: indexFileName || 'not found',
+                filesInDir: filesInDir,
+                readError: e.message
+            });
+        }
     }
 });
 
